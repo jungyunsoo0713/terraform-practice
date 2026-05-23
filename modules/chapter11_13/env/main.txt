@@ -1,0 +1,50 @@
+local.info_files
+      │
+      ▼
+"../info_files"
+      │
+      │
+      ├──────────────┐
+      │              │
+      ▼              ▼
+local.vpc_set     each.key
+["vpc-1",          "vpc-1"
+ "vpc-2"]          "vpc-2"
+      │              │
+      │              ▼
+      │        파일 경로 생성
+      │        "${local.info_files}/${each.key}/vpc.yaml"
+      │              │
+      │              ▼
+      │        "../info_files/vpc-1/vpc.yaml"
+      │        "../info_files/vpc-2/vpc.yaml"
+      │              │
+      │              ▼
+      │           file()
+      │        YAML 파일 읽기
+      │              │
+      │              ▼
+      │        yamldecode()
+      │        Terraform 값으로 변환
+      │              │
+      │              ▼
+      └──────▶ module "vpc"의 attribute로 전달
+
+---
+
+module "vpc" {
+  for_each = local.vpc_set
+      │
+      ▼
+  each.key 생성됨
+      │
+      ├── name = each.key
+      │       └── VPC 이름으로 사용
+      │
+      └── attribute = yamldecode(file("${local.info_files}/${each.key}/vpc.yaml"))
+              │
+              ├── local.info_files = info_files 폴더 위치
+              ├── each.key = 현재 VPC 폴더 이름
+              ├── file() = vpc.yaml 읽기
+              └── yamldecode() = YAML을 Terraform 값으로 변환
+}

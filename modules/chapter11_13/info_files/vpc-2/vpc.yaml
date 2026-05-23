@@ -1,0 +1,27 @@
+cidr: 10.0.0.0/16
+
+env: production # 배포 스테이지를 나타냅니다. production, staging, develop 등의 값이 올 수 있습니다. 
+# (develop -> staging -> production)
+team: devops
+
+subnet_newbits: 8 # 기존 CIDR 대역에 몇 비트를 더붙여서 서브넷을 생성합니다. 
+# 16 + 8 = 24비트를 제외한 나머지 8비트가 각 서브넷에서 사용할 주소 범위가 됩니다.
+# 즉, 10.0.0.0/24, 10.0.1.0/24, 10.0.2.0/24 ... 처럼 서브넷이 나뉨니다.
+subnet_azs: [a, c, b, d] # 서울 리전(ap-northeast-2)을 기준으로 총 4개의 AZ가 존재합니다.
+subnets:
+  pub-nat: [0, 1] # a, c # az-a와 az-c에 Nat GW용 퍼블릭 서브넷을 위치시킵니다. 각 대역은 10.0.0.0/24, 10.0.1.0/24
+  pri-app: [2, 3] # application용 리소스를(애플리케이션 서버나 ECS 같은 앱 워크로드) 배치할 프라이빗 서브넷을 생성합니다. 
+  # 각 대역은 10.0.2.0/24, 10.0.3.0/24
+  pri-db: [4, 5] # db용 리소스를 배치할 프라이빗 서브넷을 생성합니다. 각 대역은 10.0.4.0/24, 10.0.5.0/24
+  pri-network: [6, 7] # 네트워크용 리소스(VPC Endpoint, Transit Gateway Attachment, 내부 프록시, 방화벽/보안 장비 등)를 
+  # 배치할 프라이빗 서브넷을 생성합니다. 각 대역은 10.0.6.0/24, 10.0.7.0/24
+  pri-msk: [8, 9, 10] # a, c, b # MSK/Kafka용 프라이빗 서브넷입니다. 각 대역은 10.0.8.0/24, 10.0.9.0/24, 10.0.10.0/24입니다.
+nat:
+  create: true # NAT GW를 생성합니다다
+  subnet: pub-nat # 퍼블릭 서브넷에 생성합니다
+  per_az: true # 각 AZ 마다 NAT GW를 생성합니다
+
+# app/db 분리 = 일반적
+# app/network 는 보통 같은 프라이빗 서브넷에서 같이 사용
+# network 전용 subnet 분리 = 큰 규모나 보안/네트워크 설계가 있는 경우에 사용
+# app/db/network 전부 무조건 따로 사용x
