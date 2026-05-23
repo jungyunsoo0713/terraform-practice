@@ -1,0 +1,57 @@
+응, 그 말 맞아.
+
+NAT Gateway를 지금은 1개만 만들더라도, 처음부터 private route table을 AZ별로 만들어두면 나중에 NAT Gateway를 AZ별로 늘릴 때 변경 부담이 훨씬 줄어.
+
+예를 들면 처음에는 이렇게 해둔다고 치면:
+
+```text
+private subnet a → route table pri-a → NAT GW a
+private subnet c → route table pri-c → NAT GW a
+private subnet b → route table pri-b → NAT GW a
+```
+
+처음에는 NAT GW가 하나라서 전부 같은 NAT GW를 바라볼 수 있어.
+
+그런데 나중에 NAT GW를 AZ별로 늘리면:
+
+```text
+private subnet a → route table pri-a → NAT GW a
+private subnet c → route table pri-c → NAT GW c
+private subnet b → route table pri-b → NAT GW b
+```
+
+이렇게 각 route table의 `0.0.0.0/0` 대상만 바꿔주면 돼.
+
+반대로 private route table이 하나뿐이면:
+
+```text
+private subnet a
+private subnet c
+private subnet b
+        ↓
+private route table 1개 → NAT GW a
+```
+
+나중에 AZ별 NAT GW 구조로 바꾸려면:
+
+```text
+AZ별 route table 새로 생성
+서브넷별 route table association 변경 (서브넷을 어떤 라우트 테이블에 연결할 지)
+각 route table에 NAT route 추가
+기존 route table 영향 정리
+```
+(하나의 route table은 0.0.0.0/0 라우트를 하나만 가질 수 있다, 즉 하나의 NAT GW로 향하는 것만 가능)
+(
+라우트 테이블이 하나만 있다면
+private subnet a ─┐
+private subnet c ─┼→ private route table 1개 → 0.0.0.0/0 → NAT GW a
+private subnet b ─┘
+)
+(route table 1개는 여러 subnet에 연결 가능.
+subnet 1개는 한 route table만 사용 가능. 서브넷은 두 개 이상의 라우트 테이블과는 연결 될 수없다)
+
+이런 식으로 변경 범위가 커져.
+
+그래서 문장으로 정리하면 이렇게 말할 수 있어:
+
+NAT Gateway를 하나만 사용하는 경우에도, 가용 영역마다 private route table을 하나씩 만들어두고 각 AZ의 subnet을 해당 route table에 연결해두면, 나중에 NAT Gateway를 AZ별로 분리하더라도 route 대상만 바꾸면 되기 때문에 변경 부담이 줄어든다. 반대로 private route table을 하나만 사용하면, 나중에 AZ별 NAT Gateway 구조로 전환할 때 route table 생성과 subnet association 변경까지 함께 필요해진다.
